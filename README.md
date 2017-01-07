@@ -38,3 +38,8 @@ https://<YOURNGROKADDRESS>.ngrok.io/
 You will want to make sure that your device has developer tools and usb debugging enabled, so that you may view the device and its console from your Chrome browser and it's developer tools suite.
 
 *NOTE: This is over HTTPS!*
+
+## Android Pay for the Web Documentation
+
+- https://developers.google.com/web/fundamentals/discovery-and-monetization/payment-request/
+- https://developers.google.com/web/fundamentals/discovery-and-monetization/payment-request/android-pay
