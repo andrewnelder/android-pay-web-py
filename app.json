@@ -1,7 +1,7 @@
 {
-  "name": "Apple Pay for the Web Example",
-  "description": "Play with Apple Pay for the Web",
-  "repository": "https://github.com/andrewnelder/apple-pay-web-py",
+  "name": "Android Pay for the Web Example",
+  "description": "Play with Android Pay for the Web",
+  "repository": "https://github.com/andrewnelder/android-pay-web-py",
   "keywords": ["flask", "python", "stripe"],
   "env": {
     "STRIPE_PUBLISHABLE_KEY": {

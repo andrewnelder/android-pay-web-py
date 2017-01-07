@@ -1,66 +1,87 @@
 <html>
 <head>
-  <title>Apple Pay for the Web Demo</title>
+  <title>Android Pay for the Web Demo</title>
 
   <!-- (Optional) Disable the favicon.ico requests -->
   <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
 
   <!-- Import External Dependencies -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
-  <script type="text/javascript" src="https://js.stripe.com/v2/"></script>
+  <script src="https://storage.googleapis.com/prshim/v1/payment-shim.js"></script>
 
-  <!-- Import Apple Button Style -->
-  <link rel="stylesheet" type="text/css" href="/static/style.css" />
-
-  <!-- Stripe Configuration -->
-  <script>
-    Stripe.setPublishableKey('{{ STRIPE_PUBLISHABLE_KEY }}');
-  </script>
-
-  <!-- Apple Pay Event Handlers and Setup Script -->
+  <!-- Android Pay Event Handlers and Setup Script -->
   <script>
   $(document).ready(function () {
-
-    // Unhide Apple Pay button if supported
-    Stripe.applePay.checkAvailability(function(available) {
-        $('#apple-pay-button').toggle(!!available);
+    $('#android-pay-button').on('click', function () {
+      processAndroidPayCharge();
     });
-
-    // Add an event listener to the Apple Pay button
-    $('#apple-pay-button').on('click', processApplePayCharge);
-
   });
   </script>
 
   <script>
-    function processApplePayCharge() {
+    function processAndroidPayCharge() {
 
-      var paymentRequest = {
-        requiredBillingContactFields: ['postalAddress'],
-        requiredShippingContactFields: ['email', 'phone'],
-        countryCode: 'US',
-        currencyCode: 'USD',
+//        {
+//          supportedMethods: ['amex', 'discover','mastercard','visa']
+//        },
+
+      var methodData = [
+        {
+          supportedMethods: ['https://android.com/pay'],
+          data: {
+            //merchant ID obtained from Google that maps to your origin
+            merchantId: '{{ GOOGLE_MERCHANT_ID }}',
+            environment: 'TEST',
+            // Credit Cards allowed via Android Pay
+            allowedCardNetworks: ['AMEX', 'MASTERCARD', 'VISA', 'DISCOVER'],
+            paymentMethodTokenizationParameters: {
+              tokenizationType: 'GATEWAY_TOKEN',
+              parameters: {
+                'gateway': 'stripe',
+                // Place your own Stripe publishable key here.
+                'stripe:publishableKey': '{{ STRIPE_PUBLISHABLE_KEY }}',
+                'stripe:version': '2016-07-06'
+              }
+            }
+          }
+        }
+      ];
+
+      var details = {
+        displayItems: [{
+          label: 'Original donation amount',
+          amount: { currency: 'USD', value: '2.00' }
+        }, {
+          label: 'Friends and family discount',
+          amount: { currency: 'USD', value: '-1.00' }
+        }],
         total: {
-          label: 'Stripe.com',
-          amount: '19.99'
+          label: 'Total due',
+          amount: { currency: 'USD', value : '1.00' }
         }
       };
 
-      var session = Stripe.applePay.buildSession(paymentRequest, function(result, completion) {
+      var options = {
+        //requestShipping: true,
+        //requestPayerEmail: true,
+        //requestPayerPhone: true,
+        requestPayerName: true
+      };
 
-        $("#tokenResponse").text(JSON.stringify(result, null, '\t'));
+      var paymentRequest = new PaymentRequest(
+        methodData, // required payment method data
+        details,    // required information about transaction
+        options     // optional parameter for things like shipping, etc.
+      );
 
-        createCharge(paymentRequest, result, completion);
-
-      }, function(error) {
-
-        // Tokenization failed
-        console.log("Unable to tokenize Card in Stripe.");
-        console.log(error.message);
-
-      });
-
-      session.begin();
+      paymentRequest.show()
+        .then(function(tokenResponse) {
+          $("#tokenResponse").text(JSON.stringify(tokenResponse, null, '\t'));
+          createCharge(details, tokenResponse, tokenResponse.complete);
+        })
+        .catch(function() {
+          console.log('Unable to tokenize card details.');
+        });
     }
 
     function createCharge(paymentRequest, result, completion) {
@@ -77,24 +98,27 @@
       for donation pages.
       */
 
+      console.log(result.details.paymentMethodToken);
+      console.log(paymentRequest.total.amount.value);
+
       // Process charge in backend
       $.post("/charge", {
-        "token": result.token.id,
-        "amount": paymentRequest.total.amount
+        "token": result.details.paymentMethodToken,
+        "amount": paymentRequest.total.amount.value
       })
-      .done(function(response) {
+      .done(function(chargeResponse) {
 
         // Successfully processed transaction
         console.log("Successfully created Charge in Stripe.");
-        $("#chargeResponse").text(JSON.stringify(response, null, '\t'));
-        completion(true);
+        $("#chargeResponse").text(JSON.stringify(chargeResponse, null, '\t'));
+        return completion('success');
 
       })
-      .fail(function (response) {
+      .fail(function () {
 
         // Failure to create charge
         console.log("Unable to create Charge in Stripe.");
-        completion(false);
+        return completion('fail');
 
       });
     }
@@ -103,7 +127,7 @@
 
 </head>
 <body>
-  <button id="apple-pay-button"></button><br /><br />
+  <button id="android-pay-button">Android Pay</button><br /><br />
 
   Token Response:<br />
   <pre id="tokenResponse"></pre><br /><br/>
