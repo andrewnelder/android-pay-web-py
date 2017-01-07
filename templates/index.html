@@ -20,11 +20,6 @@
 
   <script>
     function processAndroidPayCharge() {
-
-//        {
-//          supportedMethods: ['amex', 'discover','mastercard','visa']
-//        },
-
       var methodData = [
         {
           supportedMethods: ['https://android.com/pay'],
@@ -74,17 +69,28 @@
         options     // optional parameter for things like shipping, etc.
       );
 
-      paymentRequest.show()
-        .then(function(tokenResponse) {
-          $("#tokenResponse").text(JSON.stringify(tokenResponse, null, '\t'));
-          createCharge(details, tokenResponse, tokenResponse.complete);
-        })
-        .catch(function() {
-          console.log('Unable to tokenize card details.');
-        });
+      paymentRequest.show().then(function(tokenResponse) {
+        $("#tokenResponse").text(JSON.stringify(tokenResponse, null, '\t'));
+        createCharge(
+          tokenResponse.details.paymentMethodToken,
+          details.total.amount.value,
+          function (chargeResult) {
+            console.log('chargeResult');
+            console.log(chargeResult);
+            if (chargeResult) {
+              tokenResponse.complete('success');
+            } else {
+              tokenResponse.complete('fail');
+            }
+          }
+        );
+      })
+      .catch(function (e) {
+        console.log(e);
+      });
     }
 
-    function createCharge(paymentRequest, result, completion) {
+    function createCharge(token, amount, complete) {
 
       /*
       This section of code communicates with the backend endpoint that was
@@ -98,29 +104,27 @@
       for donation pages.
       */
 
-      console.log(result.details.paymentMethodToken);
-      console.log(paymentRequest.total.amount.value);
-
       // Process charge in backend
       $.post("/charge", {
-        "token": result.details.paymentMethodToken,
-        "amount": paymentRequest.total.amount.value
+        "token": token,
+        "amount": amount
       })
-      .done(function(chargeResponse) {
+      .success(function(chargeResponse) {
 
         // Successfully processed transaction
         console.log("Successfully created Charge in Stripe.");
         $("#chargeResponse").text(JSON.stringify(chargeResponse, null, '\t'));
-        return completion('success');
+        complete(true);
 
       })
       .fail(function () {
 
         // Failure to create charge
         console.log("Unable to create Charge in Stripe.");
-        return completion('fail');
+        complete(false);
 
       });
+
     }
 
   </script>
