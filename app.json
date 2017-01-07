@@ -11,6 +11,10 @@
     "STRIPE_SECRET_KEY": {
       "description": "Find this at https://dashboard.stripe.com/account/apikeys (it'll look like sk_test_****)",
       "required": true
+    },
+    "GOOGLE_MERCHANT_ID": {
+      "description": "Find this at https://payments.google.com/merchant (Google Developer Account Required)",
+      "required": true
     }
   }
 }
